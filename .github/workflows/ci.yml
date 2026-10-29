@@ -1,0 +1,22 @@
+name: Generator CI
+
+on: [push, pull_request]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m unittest discover -s tests -v
+      - run: python scripts/generate.py "$RUNNER_TEMP/generated" example_api "Example API"
+      - run: python -m pip install "$RUNNER_TEMP/generated[dev]"
+      - run: ruff check scripts tests
+      - run: ruff check . && ruff format --check . && python -m pytest
+        working-directory: ${{ runner.temp }}/generated
+      - run: docker build -t generated-test "$RUNNER_TEMP/generated"
